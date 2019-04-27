@@ -33,6 +33,8 @@ from decimal import Decimal as PyDecimal  # Qt 5.12 also exports Decimal
 from electroncash import bitcoin
 from electroncash.address import Address, ScriptOutput
 from electroncash import networks
+from electroncash.verifier import SPV
+from electroncash.transaction import Transaction
 
 from . import util
 
@@ -105,12 +107,24 @@ class PayToEdit(ScanQRTextEdit):
         import json
         lookup_url = "https://api.cashaccount.info/account/" + block + "/" + username + "/" + collision
         print(lookup_url)
+        verify_url = "https://api.cashaccount.info/lookup/" + block + "/" + username + "/" + collision
+        print(verify_url)
         try:
             response = urllib.request.urlopen(lookup_url)
             account_data = json.loads(response.read().decode())
-
-            if 'error' not in account_data:
-                return account_data['information']['payment'][0]['address']
+            verify_response = urllib.request.urlopen(verify_url)
+            verify_data = json.loads(verify_response.read().decode())
+            if 'error' not in account_data and 'error' not in verify_data:
+                # verify transaction is valid from verify_url, this is first step to verifying the actual account
+                verify_height = verify_data['block']
+                verify_txid = bh2u(Hash(bfh(verify_data['results'][0]['transaction']))[::-1])
+                verify_proof = verify_data['results'][0]['inclusion_proof']
+                verify_return = self.check_merkle(verify_height,verify_txid,verify_proof)
+                
+                if verify_return
+                    return account_data['information']['payment'][0]['address']
+                else:
+                    print('Merkle proof did not match')
             else:
                 return account_data['error']
         except urllib.error.HTTPError as e:
