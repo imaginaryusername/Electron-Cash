@@ -1197,6 +1197,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.show_receive_tab()
         self.update_receive_address_widget()
 
+    def show_cash_account_register_dialog(self, addr):
+        from . import cashacct_register_dialog
+        d = cashacct_register_dialog.RegisterCashAcctDialog(self, addr)
+        d.exec_()
+
+    def update_addr_label(self, address, cash_account):
+        self.wallet.set_label(Address.from_cashaddr_string(address), cash_account)
+        self.update_labels()
+
     def update_receive_qr(self):
         amount = self.receive_amount_e.get_amount()
         message = self.receive_message_e.text()
@@ -1631,7 +1640,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return request_password
 
     def read_send_tab(self):
-
+        self.payto_e.check_text_for_cash_acct()
         isInvoice= False;
 
         if self.payment_request and self.payment_request.has_expired():

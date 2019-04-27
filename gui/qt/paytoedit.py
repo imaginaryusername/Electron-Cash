@@ -98,6 +98,20 @@ class PayToEdit(ScanQRTextEdit):
         p = pow(10, self.amount_edit.decimal_point())
         return int(p * PyDecimal(x.strip()))
 
+    def get_cash_account(self, username, block, collision):
+        print("Getting cash account...")
+        import urllib.request
+        import json
+        lookup_url = "https://api.cashaccount.info/account/" + block + "/" + username + "/" + collision
+        print(lookup_url)
+        response = urllib.request.urlopen(lookup_url)
+        account_data = json.loads(response.read().decode())
+
+        if 'error' not in account_data:
+            return account_data['information']['payment'][0]['address']
+        else:
+            return account_data['error']
+
     def check_text(self):
         self.errors = []
         if self.is_pr:
@@ -124,6 +138,84 @@ class PayToEdit(ScanQRTextEdit):
         for i, line in enumerate(lines):
             try:
                 _type, to_address, amount = self.parse_address_and_amount(line)
+            except:
+                self.errors.append((i, line.strip()))
+                continue
+
+            outputs.append((_type, to_address, amount))
+            if amount == '!':
+                is_max = True
+            else:
+                total += amount
+
+        self.win.max_button.setChecked(is_max)
+        self.outputs = outputs
+        self.payto_address = None
+
+        if self.win.max_button.isChecked():
+            self.win.do_update_fee()
+        else:
+            self.amount_edit.setAmount(total if outputs else None)
+            self.win.lock_amount(total or len(lines)>1)
+
+    def check_text_for_cash_acct(self):
+        self.errors = []
+        if self.is_pr:
+            return
+        # filter out empty lines
+        lines = [i for i in self.lines() if i]
+        outputs = []
+        total = 0
+        self.payto_address = None
+        if len(lines) == 1:
+            if '#' in lines[0]:
+                username, block = lines[0].split("#")
+                if '.' in block:
+                    new_block, collision = block.split(".")
+                    lines[0] = self.get_cash_account(username, new_block, collision).__str__()
+                else:
+                    lines[0] = self.get_cash_account(username, block, "").__str__()
+
+                data = lines[0]
+                if data.lower().startswith(networks.net.CASHADDR_PREFIX + ":"):
+                    self.scan_f(data)
+                    return
+                try:
+                    self.payto_address = self.parse_output(data)
+                except:
+                    pass
+                if self.payto_address:
+                    self.win.lock_amount(False)
+                    return
+            else:
+                data = lines[0]
+                if data.lower().startswith(networks.net.CASHADDR_PREFIX + ":"):
+                    self.scan_f(data)
+                    return
+                try:
+                    self.payto_address = self.parse_output(data)
+                except:
+                    pass
+                if self.payto_address:
+                    self.win.lock_amount(False)
+                    return
+
+        is_max = False
+        for i, line in enumerate(lines):
+            try:
+                if '#' in line:
+                    username, block = line.split("#")
+                    new_block, amount_str = block.split(",")
+
+                    if '.' in new_block:
+                        final_block, collision = new_block.split(".")
+                        line = self.get_cash_account(username, final_block, collision).__str__() + "," + amount_str
+                        _type, to_address, amount = self.parse_address_and_amount(line)
+                    else:
+                        line = self.get_cash_account(username, new_block, "").__str__() + "," + amount_str
+                        _type, to_address, amount = self.parse_address_and_amount(line)
+                else:
+                    _type, to_address, amount = self.parse_address_and_amount(line)
             except:
                 self.errors.append((i, line.strip()))
                 continue

@@ -132,6 +132,34 @@ class CloseButton(QPushButton):
         self.clicked.connect(dialog.close)
         self.setDefault(True)
 
+class RegisterCashAcctButton(QPushButton):
+    def __init__(self, dialog):
+        QPushButton.__init__(self, _("Register"))
+        self._dialog = dialog
+        self.block_height = -1
+        self.clicked.connect(lambda: self.register_cash_account(dialog.addr_e.text(), dialog.cashacct_e.text()))
+        self.setDefault(True)
+
+    def register_cash_account(self, address=None, username=None):
+        import requests
+        addr = address + ""
+        cash_acct_name = username + ""
+
+        if '#' not in cash_acct_name:
+            postdata = {'name': cash_acct_name, 'payments': [addr]}
+
+            response = requests.post("https://api.cashaccount.info/register/", json=postdata)
+
+            print(response.json()['txid'])
+            self.begin_checking_for_account(response.json()['txid'], cash_acct_name)
+        else:
+            print('Do not include identifier!')
+
+    def begin_checking_for_account(self, txid, username):
+        from . import cashacct_await_conf_dialog
+        d = cashacct_await_conf_dialog.AwaitConfirmationDialog(self, txid, username)
+        d.exec_()
+
 class CopyButton(QPushButton):
     def __init__(self, text_getter, app=None, callback=None):
         QPushButton.__init__(self, _("Copy"))

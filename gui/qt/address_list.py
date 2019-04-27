@@ -191,6 +191,8 @@ class AddressList(MyTreeWidget):
                 copy_text = addr.to_full_ui_string()
             else:
                 copy_text = item.text(col)
+
+            menu.addAction(_("Register Cash Account"), lambda: self.parent.show_cash_account_register_dialog(addr))
             menu.addAction(_("Copy {}").format(column_title), lambda: self.parent.app.clipboard().setText(copy_text.strip()))
             menu.addAction(_('Details'), lambda: self.parent.show_address(addr))
             if col in self.editable_columns:
