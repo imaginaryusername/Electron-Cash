@@ -77,7 +77,6 @@ class AwaitConfirmationDialog(WindowModalDialog):
                 cash_account = self.get_cash_account(self._username, basic_identity.__str__(), collision.__str__()).__str__()
                 print(cash_account)
                 thread.cancel()
-                self.close()
 
         if self.block_height.__eq__(-1):
             run_check()
