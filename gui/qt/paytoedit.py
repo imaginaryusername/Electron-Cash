@@ -101,16 +101,25 @@ class PayToEdit(ScanQRTextEdit):
     def get_cash_account(self, username, block, collision):
         print("Getting cash account...")
         import urllib.request
+        import urllib.error
         import json
         lookup_url = "https://api.cashaccount.info/account/" + block + "/" + username + "/" + collision
         print(lookup_url)
-        response = urllib.request.urlopen(lookup_url)
-        account_data = json.loads(response.read().decode())
+        try:
+            response = urllib.request.urlopen(lookup_url)
+            account_data = json.loads(response.read().decode())
 
-        if 'error' not in account_data:
-            return account_data['information']['payment'][0]['address']
-        else:
-            return account_data['error']
+            if 'error' not in account_data:
+                return account_data['information']['payment'][0]['address']
+            else:
+                return account_data['error']
+        except urllib.error.HTTPError as e:
+            print('Error getting Cash Account: {}'.format(e.reason))
+
+            if collision.__eq__(""):
+                return "Cash Account not found: " + username + "#" + block
+            else:
+                return "Cash Account not found: " + username + "#" + block + "." + collision
 
     def check_text(self):
         self.errors = []

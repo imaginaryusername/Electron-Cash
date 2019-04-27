@@ -75,6 +75,8 @@ class AwaitConfirmationDialog(WindowModalDialog):
                 collision = self.calculate_cash_acct_collision(hash, self._txid)
                 basic_identity = self.block_height - 563620
                 cash_account = self.get_cash_account(self._username, basic_identity.__str__(), collision.__str__()).__str__()
+                # It is recommended before saving the cash account here to remove the semi-colon
+                # attached at the end by the lookup server.
                 print(cash_account)
                 thread.cancel()
 
